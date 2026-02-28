@@ -1,0 +1,42 @@
+{
+  "name": "@agentflow/web",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Next.js 15 monitoring dashboard — agents, logs, memory explorer, HITL approvals",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --turbopack",
+    "start": "next start",
+    "test": "vitest run",
+    "lint": "biome check app/ components/ lib/",
+    "clean": "rm -rf .next out"
+  },
+  "dependencies": {
+    "@agentflow/shared": "workspace:*",
+    "next": "^15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.3",
+    "@xyflow/react": "^12.4.2",
+    "recharts": "^2.15.0",
+    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "ky": "^1.7.4",
+    "react-hook-form": "^7.54.2",
+    "@hookform/resolvers": "^3.9.1",
+    "zod": "^3.23.8",
+    "tailwindcss": "^4.0.3",
+    "@tailwindcss/typography": "^0.5.16",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8",
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.0.6",
+    "@types/react-dom": "^19.0.3"
+  },
+  "type": "module"
+}
