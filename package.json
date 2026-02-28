@@ -1,0 +1,67 @@
+{
+  "name": "agentflow",
+  "version": "0.0.1",
+  "private": true,
+  "description": "AgentFlow — secure, scalable agent-orchestration platform",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "biome format --write .",
+    "check": "biome check --apply .",
+    "db:generate": "pnpm --filter @agentflow/db drizzle-kit generate",
+    "db:migrate": "pnpm --filter @agentflow/db drizzle-kit migrate",
+    "db:push": "pnpm --filter @agentflow/db drizzle-kit push",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@changesets/cli": "^2.27.10",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "^5.7.3"
+    },
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "better-sqlite3",
+      "cpu-features",
+      "esbuild",
+      "msgpackr-extract",
+      "onnxruntime-node",
+      "protobufjs",
+      "sharp",
+      "ssh2",
+      "tree-sitter",
+      "tree-sitter-javascript",
+      "tree-sitter-python",
+      "tree-sitter-typescript"
+    ],
+    "peerDependencyRules": {
+      "ignoreMissing": [],
+      "allowedVersions": {
+        "ink>react": "19",
+        "tree-sitter-javascript>tree-sitter": ">=0.21",
+        "tree-sitter-typescript>tree-sitter": ">=0.21"
+      }
+    }
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,jsx,json}": [
+      "biome check --apply"
+    ]
+  }
+}
