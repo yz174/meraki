@@ -1,0 +1,43 @@
+{
+  "name": "@agentflow/rag",
+  "version": "0.0.1",
+  "private": true,
+  "description": "RAG pipeline — chunking, embedding, Qdrant ingestion and retrieval",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "dev": "tsc --project tsconfig.json --watch",
+    "test": "vitest run",
+    "lint": "biome check src/",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@agentflow/shared": "workspace:*",
+    "@agentflow/db": "workspace:*",
+    "@agentflow/core": "workspace:*",
+    "@qdrant/js-client-rest": "^1.13.0",
+    "@huggingface/transformers": "^3.3.3",
+    "ai": "^4.1.6",
+    "@ai-sdk/openai": "^1.1.6",
+    "tree-sitter": "^0.22.1",
+    "tree-sitter-javascript": "^0.23.1",
+    "tree-sitter-typescript": "^0.23.2",
+    "tree-sitter-python": "^0.23.6",
+    "ioredis": "^5.4.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8",
+    "@types/node": "^22.10.7"
+  },
+  "type": "module"
+}
