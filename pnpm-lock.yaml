@@ -326,6 +326,9 @@ importers:
       '@agentflow/db':
         specifier: workspace:*
         version: link:../db
+      '@agentflow/rag':
+        specifier: workspace:*
+        version: link:../rag
       '@agentflow/shared':
         specifier: workspace:*
         version: link:../shared
@@ -351,6 +354,9 @@ importers:
 
   packages/rag:
     dependencies:
+      '@agentflow/core':
+        specifier: workspace:*
+        version: link:../core
       '@agentflow/db':
         specifier: workspace:*
         version: link:../db

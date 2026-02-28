@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "description": "AgentFlow — secure, scalable agent-orchestration platform",
+  "packageManager": "pnpm@10.13.1",
   "engines": {
     "node": ">=22.0.0",
     "pnpm": ">=9.0.0"

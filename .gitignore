@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Environment files (NEVER commit secrets)
+.env
+.env.local
+.env.*.local
+secrets.yaml
+
+# Database files
+state/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Backups
+backups/
+
+# Logs
+logs/
+*.log
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Turbo cache
+.turbo/
+
+# TypeScript incremental build
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Playwright
+playwright-report/
+test-results/
+
+# Qdrant local binary
+qdrant
+qdrant_storage/
+
+# Docker
+.dockerignore
+
+# Changesets
+# (keep .changeset/ but ignore node_modules inside)
+
+# Test snapshots
+__snapshots__/
