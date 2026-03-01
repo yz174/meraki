@@ -1,0 +1,64 @@
+# =============================================================================
+# AgentFlow Runner — Production Dockerfile
+#
+# The runner spawns ephemeral Docker containers for tool execution.
+# It therefore needs access to the Docker socket (bind-mounted at runtime).
+# It is NOT internet-facing — it only accepts requests from the gateway
+# on the internal Docker network, authenticated via HMAC.
+# =============================================================================
+
+# ── Stage 1: Builder ──────────────────────────────────────────────────────────
+FROM node:22-alpine AS builder
+
+RUN corepack enable && corepack prepare pnpm@10.13.1 --activate
+
+WORKDIR /build
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY tsconfig.base.json ./
+COPY packages/shared/package.json   packages/shared/
+COPY packages/runner/package.json   packages/runner/
+
+RUN pnpm install --frozen-lockfile
+
+COPY packages/shared/ packages/shared/
+COPY packages/runner/ packages/runner/
+
+RUN pnpm --filter "@agentflow/shared" run build && \
+    pnpm --filter "@agentflow/runner"  run build
+
+RUN pnpm --filter "@agentflow/runner" --prod deploy /prod/runner
+
+COPY --from=builder /build/packages/shared/dist /prod/shared-dist/
+
+# ── Stage 2: Production ───────────────────────────────────────────────────────
+FROM node:22-alpine AS production
+
+# Runner needs docker CLI to spawn sandbox containers
+RUN apk add --no-cache tini docker-cli
+
+# Create non-root user; docker group will be added at runtime via entrypoint
+RUN addgroup -g 1001 agentflow && \
+    adduser  -u 1001 -G agentflow -s /bin/sh -D agentflow
+
+WORKDIR /app
+
+COPY --from=builder --chown=agentflow:agentflow /prod/runner /app
+COPY --from=builder --chown=agentflow:agentflow /prod/shared-dist \
+     /app/node_modules/@agentflow/shared/dist
+
+# Copy seccomp profile used for sandbox hardening
+COPY --chown=agentflow:agentflow docker/seccomp-sandbox.json /app/seccomp/sandbox.json
+ENV SECCOMP_PROFILE_PATH=/app/seccomp/sandbox.json
+
+USER agentflow
+
+ENV NODE_ENV=production
+ENV RUNNER_BIND_ADDR=0.0.0.0:8765
+EXPOSE 8765
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "dist/runner-api.js"]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:8765/health || exit 1

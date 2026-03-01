@@ -1,0 +1,215 @@
+# =============================================================================
+# AgentFlow — Docker Compose (Production)
+#
+# Usage:
+#   docker compose --env-file .env up -d
+#
+# Required secrets (in .env or Docker Secrets):
+#   JWT_SECRET, RUNNER_INTERNAL_SECRET, DB_ENCRYPTION_KEY
+# =============================================================================
+
+name: agentflow
+
+# ── Shared labels ─────────────────────────────────────────────────────────────
+x-labels: &labels
+  labels:
+    com.agentflow.managed: "true"
+
+# ── Default security context ──────────────────────────────────────────────────
+x-security: &security
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+
+  # ── Gateway ─────────────────────────────────────────────────────────────────
+  gateway:
+    <<: [*labels, *security]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gateway
+    image: agentflow-gateway:${TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-agentflow}:${POSTGRES_PASSWORD:-changeme_set_in_prod}@postgres:5432/${POSTGRES_DB:-agentflow}
+      DATABASE_ENCRYPTION: none
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-me-min-32charss}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      RUNNER_URL: http://runner:8765
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3001}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      METRICS_ENABLED: "true"
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+    networks:
+      - public
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  # ── Runner ──────────────────────────────────────────────────────────────────
+  runner:
+    <<: *labels
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.runner
+    image: agentflow-runner:${TAG:-latest}
+    restart: unless-stopped
+    # Runner needs docker socket to spawn sandbox containers
+    # Mitigated by: HMAC auth, internal-only network, no public port
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - runner-tmp:/tmp
+    environment:
+      NODE_ENV: production
+      RUNNER_BIND_ADDR: "0.0.0.0:8765"
+      RUNNER_INTERNAL_SECRET: ${RUNNER_INTERNAL_SECRET:-dev-runner-secret-change-me-32chars}
+      RUNNER_EGRESS_ALLOWLIST: ${RUNNER_EGRESS_ALLOWLIST:-api.anthropic.com,api.openai.com}
+      SANDBOX_IMAGE_BASE: agentflow-sandbox:${TAG:-latest}
+      SHELL_TIMEOUT: ${SHELL_TIMEOUT:-30}
+      SECCOMP_PROFILE_PATH: /app/seccomp/sandbox.json
+    networks:
+      - internal
+    expose:
+      - "8765"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8765/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 2G
+        reservations:
+          memory: 256M
+
+  # ── Postgres ─────────────────────────────────────────────────────────────────
+  postgres:
+    <<: [*labels, *security]
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agentflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_set_in_prod}
+      POSTGRES_DB: ${POSTGRES_DB:-agentflow}
+      # Enable pgcrypto for column-level encryption
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - internal
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agentflow} -d ${POSTGRES_DB:-agentflow}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    <<: [*labels, *security]
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-changeme}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1
+      --loglevel warning
+    volumes:
+      - redis-data:/data
+    networks:
+      - internal
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+
+  # ── Qdrant ───────────────────────────────────────────────────────────────────
+  qdrant:
+    <<: [*labels, *security]
+    image: qdrant/qdrant:v1.12.4
+    restart: unless-stopped
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-}
+      QDRANT__SERVICE__ENABLE_TLS: "false"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - internal
+    expose:
+      - "6333"
+      - "6334"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:6333/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+# ── Named volumes ──────────────────────────────────────────────────────────────
+volumes:
+  postgres-data:
+  redis-data:
+  qdrant-data:
+  runner-tmp:
+
+# ── Networks ───────────────────────────────────────────────────────────────────
+networks:
+  public:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true

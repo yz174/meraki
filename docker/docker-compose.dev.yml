@@ -1,0 +1,53 @@
+# =============================================================================
+# AgentFlow — Docker Compose Dev Override
+#
+# Usage:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up
+#
+# Relaxes production-only constraints for a smoother local dev experience.
+# NEVER use these overrides in production.
+# =============================================================================
+
+name: agentflow
+
+services:
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gateway
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+      DATABASE_URL: file:./state/db.sqlite
+      DATABASE_ENCRYPTION: none
+      JWT_SECRET: dev-jwt-secret-change-me-min-32charss
+      RUNNER_INTERNAL_SECRET: dev-runner-secret-change-me-32chars
+      # No Redis auth in dev — override the connection string
+      REDIS_URL: redis://redis:6379
+      RUNNER_URL: http://runner:8765
+      CORS_ORIGIN: http://localhost:3001
+    ports:
+      - "3000:3000"
+
+  runner:
+    environment:
+      NODE_ENV: development
+      RUNNER_INTERNAL_SECRET: dev-runner-secret-change-me-32chars
+
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: localdev
+    ports:
+      - "5432:5432"
+
+  redis:
+    # Override command: no --requirepass in dev
+    command: redis-server --loglevel verbose --save ""
+    ports:
+      - "6379:6379"
+
+  qdrant:
+    ports:
+      - "6333:6333"
+      - "6334:6334"
