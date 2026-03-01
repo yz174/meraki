@@ -37,13 +37,25 @@ coverage/
 # TypeScript incremental build
 *.tsbuildinfo
 
+# TypeScript declaration source maps (always auto-generated, never hand-edited)
+*.d.ts.map
+
+# Drizzle Kit compiles drizzle.config.ts in-place — ignore the JS outputs
+drizzle.config.js
+drizzle.config.js.map
+drizzle.config.d.ts
+drizzle.config.d.ts.map
+
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # IDE
 .vscode/settings.json
 .idea/
+*.swp
+*.swo
 
 # Playwright
 playwright-report/
@@ -53,11 +65,59 @@ test-results/
 qdrant
 qdrant_storage/
 
+# Docker compose bind-mount volume directories (created on host by docker compose)
+postgres-data/
+redis-data/
+qdrant-data/
+
 # Docker
 .dockerignore
+
+# Python artifacts (runner sandbox executes Python scripts)
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+.Python
+
+# OPA binary (policy engine — downloaded locally by runner or developer)
+opa
+opa.exe
+
+# pnpm debug log
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Secrets / certificates (NEVER commit private keys or certificates)
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+*.crt
+
+# Additional .env variants not covered by .env / .env.*.local above
+.env.production
+.env.staging
+.env.test
+.env.development
+
+# Temporary directories
+tmp/
+temp/
+.tmp/
+
+# Next.js auto-generated type declaration (re-created on every `next dev/build`)
+next-env.d.ts
 
 # Changesets
 # (keep .changeset/ but ignore node_modules inside)
 
 # Test snapshots
 __snapshots__/
+
+# Vitest / Jest cache
+.vitest-cache/
+.jest-cache/
